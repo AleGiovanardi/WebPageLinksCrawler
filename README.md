@@ -7,6 +7,7 @@ main.go <filename_to_save> <target_URL>
 ## *Example*
 
 ```
+go get github.com/PuerkitoBio/goquery
 mkdir pages logs
 go build -o build/crawler main.go
 ./crawler grabfile.pdf https://www.google.com/data/sample.pdf
