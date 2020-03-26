@@ -3,17 +3,41 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/dustin/go-humanize"
 )
 
 func check(s string, e error) {
 	if e != nil {
 		panic(e)
 	}
+}
+
+// WriteCounter counts the number of bytes written to it. It implements to the io.Writer interface
+// and we can pass this into io.TeeReader() which will report progress on each write cycle.
+type WriteCounter struct {
+	Total uint64
+}
+
+func (wc *WriteCounter) Write(p []byte) (int, error) {
+	n := len(p)
+	wc.Total += uint64(n)
+	wc.PrintProgress()
+	return n, nil
+}
+
+func (wc WriteCounter) PrintProgress() {
+	// Clear the line by using a character return to go back to the start and remove
+	// the remaining characters by filling it with spaces
+	fmt.Printf("\r%s", strings.Repeat(" ", 35))
+
+	// Return again and print current status of download
+	// We use the humanize package to print the bytes in a meaningful way (e.g. 10 MB)
+	fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.Total))
 }
 
 func main() {
@@ -36,10 +60,16 @@ func main() {
 	defer response.Body.Close()
 
 	//Copy response into saved file
-	numBytesWritten, err := io.Copy(newFile, response.Body)
+	/*numBytesWritten, err := io.Copy(newFile, response.Body)
 	check("Error saving file to disk. ", err)
 
-	log.Printf("Success! Downloaded %d byte file. \n", numBytesWritten)
+	log.Printf("Success! Downloaded %d byte file. \n", numBytesWritten)*/
+
+	counter := &WriteCounter{}
+	if _, err = io.Copy(newFile, io.TeeReader(response.Body, counter)); err != nil {
+		newFile.Close()
+		return
+	}
 
 	response, err = http.Get(URL)
 	defer response.Body.Close()
@@ -65,5 +95,6 @@ func main() {
 			check("Error writing bytes to file: ", err)
 		}
 	})
+	check("", err)
 
 }
