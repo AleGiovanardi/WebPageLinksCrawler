@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -38,7 +40,7 @@ func (wc WriteCounter) PrintProgress() {
 
 	// Return again and print current status of download
 	// We use the humanize package to print the bytes in a meaningful way (e.g. 10 MB)
-	fmt.Printf("\rDownloading... %s complete", humanize.Bytes(wc.Total))
+	fmt.Printf("\rDownloading... %s complete. Finished ", humanize.Bytes(wc.Total))
 }
 
 func main() {
@@ -60,6 +62,15 @@ func main() {
 	if response.StatusCode == 404 {
 		fmt.Println("Can't find target URL!\n Please check that inserted URL is valid.")
 		os.Exit(1)
+	}
+	if response.StatusCode == 200 {
+		web, err := url.Parse(URL)
+		check("Error parsing URL ", err)
+
+		ip, err := net.LookupIP(web.Host)
+		check("Error retrieving website's IP address. ", err)
+		fmt.Printf("Connected to %v.\nIP address %v\n", web.Host, ip)
+
 	}
 	defer response.Body.Close()
 
@@ -83,18 +94,20 @@ func main() {
 	check("Error creating file on disk: ", err)
 
 	//Find all links and save to file
+	list := ""
 	links.Find("a").Each(func(i int, s *goquery.Selection) {
 		href, exists := s.Attr("href")
 		if exists {
 			// If the file doesn't exist, create it, or else append to the file
 			f, err := os.OpenFile("logs/"+string(URL)+"/"+"link.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 			check("Can't write log file to disk.", err)
+			list += "- " + s.Text() + "\n"
 			_, err = f.Write([]byte(href))
 			f.Close() // ignore error; Write error takes precedences
 			check("Error writing bytes to file: ", err)
 		}
 	})
 	check("", err)
-	log.Println("Crawling finished.\n Success!")
+	log.Println("\nCrawling finished.\n Success!")
 
 }
