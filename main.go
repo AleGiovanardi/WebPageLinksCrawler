@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -46,7 +47,6 @@ func main() {
 		fmt.Println("Usage: " + os.Args[0] + " <filename_to_save> <target_URL>")
 		fmt.Println("Example: " + os.Args[0] + " saved.pdf https://www.lollipop.com/hello.pdf")
 		os.Exit(1)
-
 	}
 
 	URL := os.Args[2]
@@ -57,14 +57,13 @@ func main() {
 	defer newFile.Close()
 
 	response, err := http.Get(URL)
+	if response.StatusCode == 404 {
+		fmt.Println("Can't find target URL!\n Please check that inserted URL is valid.")
+		os.Exit(1)
+	}
 	defer response.Body.Close()
 
-	//Copy response into saved file
-	/*numBytesWritten, err := io.Copy(newFile, response.Body)
-	check("Error saving file to disk. ", err)
-
-	log.Printf("Success! Downloaded %d byte file. \n", numBytesWritten)*/
-
+	//Count bytes while downloading and copy response into saved file
 	counter := &WriteCounter{}
 	if _, err = io.Copy(newFile, io.TeeReader(response.Body, counter)); err != nil {
 		newFile.Close()
@@ -96,5 +95,6 @@ func main() {
 		}
 	})
 	check("", err)
+	log.Println("Crawling finished.\n Success!")
 
 }
