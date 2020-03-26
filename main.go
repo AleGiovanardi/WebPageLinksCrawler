@@ -10,6 +10,12 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
+func check(s string, e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
 func main() {
 	//Load command line arguments
 	if len(os.Args) != 3 {
@@ -23,9 +29,7 @@ func main() {
 
 	//Open file and append if it exist. If not create it and write.
 	newFile, err := os.OpenFile("pages/"+os.Args[1], os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check("Error opening file! ", err)
 	defer newFile.Close()
 
 	response, err := http.Get(URL)
@@ -33,9 +37,7 @@ func main() {
 
 	//Copy response into saved file
 	numBytesWritten, err := io.Copy(newFile, response.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
+	check("Error saving file to disk. ", err)
 
 	log.Printf("Success! Downloaded %d byte file. \n", numBytesWritten)
 
@@ -45,15 +47,11 @@ func main() {
 	//List all hyperlinks in the downloaded page.
 	//We look for href tags only.
 	links, err := goquery.NewDocumentFromReader(response.Body)
-	if err != nil {
-		log.Fatal("Error loading links.", err)
-	}
+	check("Error loading links: ", err)
 
 	dir := string(URL)
 	err = os.MkdirAll("logs/"+dir+"/", 0777)
-	if err != nil {
-		log.Fatal("Error creating file on disk: ", err)
-	}
+	check("Error creating file on disk: ", err)
 
 	//Find all links and save to file
 	links.Find("a").Each(func(i int, s *goquery.Selection) {
@@ -61,16 +59,10 @@ func main() {
 		if exists {
 			// If the file doesn't exist, create it, or else append to the file
 			f, err := os.OpenFile("logs/"+string(URL)+"/"+"link.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
-			if err != nil {
-				log.Fatal(err)
-			}
-			if _, err := f.Write([]byte(href)); err != nil {
-				f.Close() // ignore error; Write error takes precedences
-				log.Fatal("Error writing bytes to file: ", err)
-			}
-			if err := f.Close(); err != nil {
-				log.Fatal("Error closing file: ", err)
-			}
+			check("Can't write log file to disk.", err)
+			_, err = f.Write([]byte(href))
+			f.Close() // ignore error; Write error takes precedences
+			check("Error writing bytes to file: ", err)
 		}
 	})
 
