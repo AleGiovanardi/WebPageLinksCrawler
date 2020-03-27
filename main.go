@@ -43,8 +43,10 @@ func (wc WriteCounter) PrintProgress() {
 	// Return again and print current status of download
 	// We use the humanize package to print the bytes in a meaningful way (e.g. 10 MB)
 	fmt.Printf("\rDownloading... %s complete. Finished ", humanize.Bytes(wc.Total))
+
 }
 
+//init func initializes directory creation and log tracing.
 func init() {
 	URL := os.Args[2]
 	dir, err := url.Parse(URL)
@@ -72,6 +74,7 @@ func init() {
 	log.SetPrefix("LOG: ")
 	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
 	log.Println("init started")
+
 }
 
 func main() {
