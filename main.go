@@ -14,9 +14,11 @@ import (
 	"github.com/dustin/go-humanize"
 )
 
+//Func check checks for errors. If any panic and write log.
 func check(s string, e error) {
 	if e != nil {
 		panic(e)
+		log.Fatalln(e)
 	}
 }
 
@@ -43,11 +45,24 @@ func (wc WriteCounter) PrintProgress() {
 	fmt.Printf("\rDownloading... %s complete. Finished ", humanize.Bytes(wc.Total))
 }
 
+func init() {
+	//Log to file
+	file, e := os.OpenFile("logs/file.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+	if e != nil {
+		log.Fatalln("Failed to open log file")
+	}
+	log.SetOutput(file)
+	log.SetPrefix("LOG: ")
+	log.SetFlags(log.Ldate | log.Lmicroseconds | log.Llongfile)
+	log.Println("init started")
+}
+
 func main() {
 	//Load command line arguments
 	if len(os.Args) != 3 {
 		fmt.Println("Usage: " + os.Args[0] + " <filename_to_save> <target_URL>")
 		fmt.Println("Example: " + os.Args[0] + " saved.pdf https://www.lollipop.com/hello.pdf")
+		log.Fatalln("Not enough arguments passed!")
 		os.Exit(1)
 	}
 
@@ -70,6 +85,7 @@ func main() {
 		ip, err := net.LookupIP(web.Host)
 		check("Error retrieving website's IP address. ", err)
 		fmt.Printf("Connected to %v.\nIP address %v\n", web.Host, ip)
+		log.Printf("Connected to %v.\nIP address %v\n", web.Host, ip)
 
 	}
 	defer response.Body.Close()
@@ -89,25 +105,29 @@ func main() {
 	links, err := goquery.NewDocumentFromReader(response.Body)
 	check("Error loading links: ", err)
 
-	dir := string(URL)
-	err = os.MkdirAll("logs/"+dir+"/", 0777)
-	check("Error creating file on disk: ", err)
+	dir, err := url.Parse(URL)
+	_, err = os.Stat("links/" + dir.Host + dir.Path + "/")
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll("links/"+dir.Host+dir.Path+"/", 0777)
+		check("Error creating file on disk: ", errDir)
+	}
 
 	//Find all links and save to file
-	list := ""
 	links.Find("a").Each(func(i int, s *goquery.Selection) {
 		href, exists := s.Attr("href")
 		if exists {
+			web, err := url.Parse(URL)
+			check("Error parsing URL ", err)
 			// If the file doesn't exist, create it, or else append to the file
-			f, err := os.OpenFile("logs/"+string(URL)+"/"+"link.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+			f, err := os.OpenFile("links/"+web.Host+web.Path+"/"+"link.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 			check("Can't write log file to disk.", err)
-			list += "- " + s.Text() + "\n"
-			_, err = f.Write([]byte(href))
+			_, err = f.Write([]byte(href + "\n"))
 			f.Close() // ignore error; Write error takes precedences
 			check("Error writing bytes to file: ", err)
 		}
 	})
 	check("", err)
+	fmt.Println("\nCrawling finished.\n Success!")
 	log.Println("\nCrawling finished.\n Success!")
 
 }
