@@ -46,8 +46,25 @@ func (wc WriteCounter) PrintProgress() {
 }
 
 func init() {
+	URL := os.Args[2]
+	dir, err := url.Parse(URL)
+	_, err = os.Stat("links/" + dir.Host + dir.Path + "/")
+	if os.IsNotExist(err) {
+		errDir := os.MkdirAll("links/"+dir.Host+dir.Path+"/", 0777)
+		check("Error creating links directory: ", errDir)
+	}
+	_, err = os.Stat("pages/" + dir.Host + "/")
+	if os.IsNotExist(err) {
+		errDir2 := os.MkdirAll("pages/"+dir.Host+"/", 0777)
+		check("Error creating pages directory: ", errDir2)
+	}
+	_, err = os.Stat("logs/" + dir.Host + "/")
+	if os.IsNotExist(err) {
+		errDir2 := os.MkdirAll("logs/"+dir.Host+"/", 0777)
+		check("Error creating log directory: ", errDir2)
+	}
 	//Log to file
-	file, e := os.OpenFile("logs/file.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
+	file, e := os.OpenFile("logs/"+dir.Host+"/"+"file.txt", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0777)
 	if e != nil {
 		log.Fatalln("Failed to open log file")
 	}
@@ -66,10 +83,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	//Take URL argument from command line and parse.
 	URL := os.Args[2]
+	u, err := url.Parse(URL)
 
 	//Open file and append if it exist. If not create it and write.
-	newFile, err := os.OpenFile("pages/"+os.Args[1], os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	newFile, err := os.OpenFile("pages/"+u.Host+"/"+os.Args[1], os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	check("Error opening file! ", err)
 	defer newFile.Close()
 
@@ -104,13 +123,6 @@ func main() {
 	//We look for href tags only.
 	links, err := goquery.NewDocumentFromReader(response.Body)
 	check("Error loading links: ", err)
-
-	dir, err := url.Parse(URL)
-	_, err = os.Stat("links/" + dir.Host + dir.Path + "/")
-	if os.IsNotExist(err) {
-		errDir := os.MkdirAll("links/"+dir.Host+dir.Path+"/", 0777)
-		check("Error creating file on disk: ", errDir)
-	}
 
 	//Find all links and save to file
 	links.Find("a").Each(func(i int, s *goquery.Selection) {
