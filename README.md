@@ -18,6 +18,12 @@ Saved file is saved in Pages folder.
 A text file with links found in the crawled page is saved in Links folder.
 A logfile is saved for logging purposes in Logs folder.
 
+### FIELDS OF USE
+- Bypass newspaper websites reading blocks for non subscrition users.
+- Download Source code of any web page
+- Get all the links available on a web page
+- Grab all images found in a webpage
+
 
 ### TO DO
 
