@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/PuerkitoBio/goquery"
@@ -57,7 +58,6 @@ func (wc WriteCounter) PrintProgress() {
 func saveImage() {
 	web, err := url.Parse(URL)
 	check("Error parsing URL ", err)
-	os.Chdir("imgs/" + web.Host + web.Path)
 	readFile, err := os.Open("imgs.txt")
 	fileScanner := bufio.NewScanner(readFile)
 	fileScanner.Split(bufio.ScanLines)
@@ -68,11 +68,10 @@ func saveImage() {
 	}
 
 	for _, eachline := range fileTextLines {
-		//os.Chdir("imgs/" + web.Host + web.Path)
-		//os.MkdirAll("imgs/"+web.Host+"/"+strings.Trim(eachline, "!https"), 0777)
-		res, err := http.Get(eachline)
+		imgfile := path.Base(eachline)
+		res, err := http.Get("https://" + web.Host + eachline)
 		check("", err)
-		file, err := os.OpenFile(".../imgs/"+web.Host+"/"+eachline, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+		file, err := os.OpenFile(imgfile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 		io.Copy(file, res.Body)
 		check("", err)
 		file.Close()
@@ -189,7 +188,7 @@ func main() {
 			web, err := url.Parse(URL)
 			check("Error parsing URL ", err)
 			// If the file doesn't exist, create it, or else append to the file
-			f, err := os.OpenFile("/Users/kranio/Workspace/WebPageLinksCrawler/imgs/"+web.Host+web.Path+"imgs.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
+			f, err := os.OpenFile("imgs/"+web.Host+web.Path+"/"+"imgs.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0777)
 			check("Can't write image to disk.", err)
 			_, err = f.Write([]byte(src + "\n"))
 			f.Close() // ignore error; Write error takes precedences

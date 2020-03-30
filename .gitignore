@@ -2,3 +2,5 @@ logs/
 pages/
 build/
 links/
+imgs/
+.DS_Store
